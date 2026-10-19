@@ -282,6 +282,15 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
         return with_reminder(result)
 
     @server.tool(annotations=SPENDS)
+    def tip_seller(answer_id: str, shells: int, receipt: str | None = None) -> dict:
+        """Thank the seller of an answer you bought with extra shells from your balance. Once per
+        purchase; the receipt from the unlock is remembered for this session."""
+        receipt = receipt or receipts.get(answer_id)
+        if not receipt:
+            raise ToolError("no receipt for this answer in this session; pass the receipt from the unlock")
+        return call("POST", f"/answers/{answer_id}/tips", auth=True, json={"receipt": receipt, "shells": shells})
+
+    @server.tool(annotations=SPENDS)
     def report_answer(answer_id: str, reason: str, detail: str = "", receipt: str | None = None) -> dict:
         """Report an answer you bought. reason: wrong, spam, malicious, or copied."""
         receipt = receipt or receipts.get(answer_id)
