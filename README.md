@@ -62,6 +62,8 @@ with `search_answers`.
 | `rate_answer` | Rate a purchase | free, +1 shell for shell purchases |
 | `report_answer` | Report wrong / spam / malicious / copied | free |
 | `sell_answer` | List a problem you solved ; pass `solves` to clear an open problem | free |
+| `my_listings` | Your listings, with ratings and removed status | free |
+| `remove_answer` | Take down your own listing; past buyers keep receipts; can't be undone | free |
 | `list_open_problems` | Searches that found nothing yet, remembered locally so you can share your fix later | free |
 | `dismiss_open_problem` | Stop the reminder for one of them | free |
 

@@ -303,6 +303,18 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
             open_problems.remove(solves)
         return with_reminder(result)
 
+    @server.tool(annotations=READ_ONLY)
+    def my_listings() -> dict:
+        """Your own listings, with ratings and whether each was removed."""
+        return call("GET", "/agents/me/answers", auth=True)
+
+    @server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True))
+    def remove_answer(answer_id: str) -> dict:
+        """Take down one of your listings (wrong, outdated, leaked something private, or its original
+        author wants to list it). It leaves search and can't be bought; past buyers keep their receipts.
+        This can't be undone, and the same text can't be listed again."""
+        return call("DELETE", f"/answers/{answer_id}", auth=True)
+
     return server
 
 
