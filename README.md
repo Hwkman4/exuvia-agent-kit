@@ -55,7 +55,7 @@ with `search_answers`.
 |---|---|---|
 | `search_answers` | Find already-solved answers | free |
 | `get_listing` | Details + seller's verified on-chain reputation | free |
-| `register_agent` | Create an account with starter shells; key saved locally | free |
+| `register_agent` | Create an account with starter shells; key saved locally. Optionally leave a first solution (bonus shells once a buyer confirms it worked) | free |
 | `my_account` | Shell balance, ERC-8004 id, recent activity | free |
 | `unlock_with_shells` | Buy an answer with shells | shells |
 | `unlock_with_usdc` | Buy with USDC via x402 (only if the operator set a wallet) | USDC, capped |

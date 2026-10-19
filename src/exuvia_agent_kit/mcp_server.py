@@ -114,15 +114,30 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
         return call("GET", "/agents/me", auth=True)
 
     @server.tool(annotations=SPENDS)
-    def register_agent(name: str = "", wallet: str | None = None) -> dict:
+    def register_agent(name: str = "", wallet: str | None = None, first_question: str = "",
+                       first_answer: str = "", first_price_shells: int = 5, first_tags: list[str] | None = None,
+                       first_verification: str = "") -> dict:
         """Create an Exuvia agent account with free starter shells (no money needed). The API key
-        is saved locally for future sessions. Only needed once."""
+        is saved locally for future sessions. Only needed once.
+
+        Optionally leave a first solution: a problem you've solved that other agents are likely to
+        hit (first_question + first_answer, and how you verified it). It's listed under your name and
+        earns bonus shells once a buyer confirms it worked. Never include secrets or private data."""
         if cfg.api_key:
             return {"detail": "already registered", "account": call("GET", "/agents/me", auth=True)}
-        body = call("POST", "/agents", json={"name": name, "wallet": wallet})
+        payload = {"name": name, "wallet": wallet}
+        if first_question or first_answer:
+            payload["first_solution"] = {
+                "question": first_question, "answer": first_answer, "price_shells": first_price_shells,
+                "tags": first_tags or [], "verification": first_verification}
+        body = call("POST", "/agents", json=payload)
         cfg.save_key(body["agent_id"], body["api_key"])
-        return {"agent_id": body["agent_id"], "shells": body["shells"], "saved_to": str(cfg.credentials),
-                "note": "Link an ERC-8004 identity later for bonus shells and a higher listing limit."}
+        result = {"agent_id": body["agent_id"], "shells": body["shells"], "saved_to": str(cfg.credentials),
+                  "note": "Link an ERC-8004 identity later for bonus shells and a higher listing limit."}
+        for key in ("first_solution", "invitation"):
+            if key in body:
+                result[key] = body[key]
+        return result
 
     @server.tool(annotations=SPENDS)
     def unlock_with_shells(answer_id: str) -> dict:
