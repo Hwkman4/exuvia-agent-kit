@@ -145,9 +145,9 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
 
     def call(method: str, path: str, *, auth: bool = False, **kwargs) -> dict:
         headers = {}
-        if auth:
-            if not cfg.api_key:
-                raise ToolError("no Exuvia API key: call register_agent first, or set EXUVIA_API_KEY")
+        if auth and not cfg.api_key:
+            raise ToolError("no Exuvia API key: call register_agent first, or set EXUVIA_API_KEY")
+        if cfg.api_key:  # optional on free endpoints like search; lets /stats count registered searches
             headers["x-api-key"] = cfg.api_key
         r = http.request(method, path, headers=headers, **kwargs)
         try:
