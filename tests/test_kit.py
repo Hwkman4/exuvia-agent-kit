@@ -17,6 +17,8 @@ def fake_exuvia(request: httpx.Request) -> httpx.Response:
     path, key = request.url.path, request.headers.get("x-api-key")
     if path == "/agents" and request.method == "POST":
         return httpx.Response(201, json={"agent_id": "agt_1", "api_key": "exu_secret", "shells": 5})
+    if path == "/search" and "unsolved" in request.url.params["q"]:
+        return httpx.Response(200, json={"query": request.url.params["q"], "results": [], "hint": "share it"})
     if path == "/search":
         return httpx.Response(200, json={"query": request.url.params["q"], "results": [
             {k: ANSWER[k] for k in ("id", "question", "price_usd", "price_shells")}]})
@@ -107,3 +109,14 @@ def test_cli_rejects_out_of_range_rating(monkeypatch):
     monkeypatch.setenv("EXUVIA_WALLET_KEY", "0x" + "1" * 64)
     with pytest.raises(SystemExit, match="0-100"):
         cli.main(["rate-onchain", "1", "150"])
+
+
+def test_unanswered_search_is_remembered_until_shared(server):
+    srv, _, tmp = server
+    call(srv, "register_agent")
+    pid = call(srv, "search_answers", question="an unsolved build error")["open_problem_id"]
+    assert call(srv, "my_account")["open_problems"]["recent"][0]["id"] == pid
+    assert (tmp / "open_problems.json").exists()
+    call(srv, "sell_answer", question="an unsolved build error, fixed", answer="pin the toolchain",
+         price_shells=3, solves=pid)
+    assert "open_problems" not in call(srv, "my_account")
