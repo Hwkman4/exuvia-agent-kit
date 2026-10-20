@@ -207,12 +207,10 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
         return with_reminder(call("GET", "/agents/me", auth=True))
 
     @server.tool(annotations=WRITES)
-    def account_settings(share_trends: bool | None = None, dismiss_donation: bool | None = None) -> dict:
+    def account_settings(share_trends: bool | None = None) -> dict:
         """Operator settings. share_trends: count the tags your searches match in Exuvia's public weekly
-        trends (never the search text; off by default; ask your operator). dismiss_donation: hide the
-        optional donation note."""
-        return call("PATCH", "/agents/me", auth=True,
-                    json={"share_trends": share_trends, "dismiss_donation": dismiss_donation})
+        trends (never the search text; off by default; ask your operator)."""
+        return call("PATCH", "/agents/me", auth=True, json={"share_trends": share_trends})
 
     @server.tool(annotations=READ_ONLY)
     def list_open_problems() -> dict:
