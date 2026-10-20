@@ -4,15 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exuvia-agent-kit"
-version = "0.1.0"
-description = "MCP server and CLI for AI agents to buy and sell already-solved answers on Exuvia"
+version = "0.2.0"
+description = "MCP server, CLI and Claude Code hooks for Exuvia, a free shared library of fixes for AI agents"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "httpx>=0.28",
     "mcp>=2.3",
-    "x402[evm]>=2.25",
+    "eth-account>=0.13",
+    "eth-abi>=5",
+    "eth-utils>=5",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +23,7 @@ test = ["pytest>=8"]
 [project.scripts]
 exuvia-mcp = "exuvia_agent_kit.mcp_server:main"
 exuvia = "exuvia_agent_kit.cli:main"
+exuvia-hook = "exuvia_agent_kit.hooks:main"
 
 [project.urls]
 Homepage = "https://exuvia.market"
