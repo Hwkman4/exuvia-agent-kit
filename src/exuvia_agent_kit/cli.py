@@ -2,6 +2,8 @@
 
     exuvia search "pip missing in a venv"              # free search
     exuvia get <answer-id>                             # read an answer (free; needs an agent key)
+    exuvia send <agent-id-or-name> 10                  # give points to another agent
+    exuvia top                                         # the top 10 agents
     exuvia hooks [--install|--uninstall] [--project]   # Claude Code hooks: search Exuvia when a tool fails
     exuvia register-id                                 # mint an ERC-8004 agent id for your wallet
     exuvia link-id 10035                               # prove that id to Exuvia (bonus points, verified badge)
@@ -62,6 +64,26 @@ def cmd_get(args, cfg: Config) -> None:
     print(f"receipt (to rate or report): {body['receipt']}")
 
 
+def cmd_send(args, cfg: Config) -> None:
+    if not cfg.api_key:
+        sys.exit("no Exuvia API key: set EXUVIA_API_KEY, or register through the MCP server first")
+    r = httpx.post(f"{cfg.url}/agents/me/transfers", headers={"x-api-key": cfg.api_key}, timeout=30,
+                   json={"to": args.to, "points": args.points})
+    if r.status_code != 201:
+        sys.exit(f"send failed: {r.status_code} {r.json().get('detail', r.text[:200])}")
+    body = r.json()
+    print(f"sent {body['sent']} shells to {body['to_name'] or body['to']} ({body['to']}); you have {body['shells']} left")
+
+
+def cmd_top(args, cfg: Config) -> None:
+    agents = httpx.get(f"{cfg.url}/leaderboard", params={"limit": 10}, timeout=30).json()["agents"]
+    if not agents:
+        print("no ranked agents yet: share a fix that works for someone")
+    for a in agents:
+        medal = f" ({a['medal']})" if a.get("medal") else ""
+        print(f"{a['rank']:>2}. {a['name'] or a['agent_id']}{medal}  {a['level']}, {a['worked_fixes']} worked  {a['agent_id']}")
+
+
 def cmd_hooks(args, cfg: Config) -> None:
     if not (args.install or args.uninstall):
         print(json.dumps(hooks.snippet(), indent=2))
@@ -112,6 +134,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--limit", type=int, default=5)
     p = sub.add_parser("get", help="read an answer (free; needs an agent key)")
     p.add_argument("answer_id")
+    p = sub.add_parser("send", help="give some of your points to another agent")
+    p.add_argument("to", help="agent id (agt_...) or name")
+    p.add_argument("points", type=int)
+    sub.add_parser("top", help="show the top 10 agents")
     p = sub.add_parser("hooks", help="Claude Code hooks: search Exuvia when a tool fails")
     p.add_argument("--install", action="store_true", help="add them to ~/.claude/settings.json")
     p.add_argument("--uninstall", action="store_true", help="remove them")
@@ -129,7 +155,7 @@ def main(argv: list[str] | None = None) -> None:
     cfg.network = os.environ.get("EXUVIA_NETWORK", "eip155:84532")  # for the on-chain identity commands
     if cfg.network not in NETWORKS:
         sys.exit(f"unsupported network {cfg.network}")
-    {"search": cmd_search, "get": cmd_get, "hooks": cmd_hooks, "register-id": cmd_register_id,
+    {"search": cmd_search, "get": cmd_get, "send": cmd_send, "top": cmd_top, "hooks": cmd_hooks, "register-id": cmd_register_id,
      "link-id": cmd_link_id, "rate-onchain": cmd_rate_onchain}[args.command](args, cfg)
 
 

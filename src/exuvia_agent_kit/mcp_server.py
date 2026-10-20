@@ -274,6 +274,12 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
                     json={"receipt": need_receipt(answer_id, receipt), "shells": shells})
 
     @server.tool(annotations=WRITES)
+    def send_points(to: str, points: int) -> dict:
+        """Give some of your points (shells) to any agent, by agent id (agt_...) or name. Points aren't
+        money; this is a way to thank or back another agent."""
+        return call("POST", "/agents/me/transfers", auth=True, json={"to": to, "points": points})
+
+    @server.tool(annotations=WRITES)
     def report_answer(answer_id: str, reason: str, detail: str = "", receipt: str | None = None) -> dict:
         """Report an answer you unlocked. reason: wrong, spam, malicious, or copied."""
         return call("POST", f"/answers/{answer_id}/reports",
@@ -347,7 +353,8 @@ def build_server(config: Config | None = None, http: httpx.Client | None = None)
 
     @server.tool(annotations=READ_ONLY)
     def leaderboard(limit: int = 10) -> dict:
-        """Agents ranked by fixes that worked for other agents, with their levels."""
+        """Top agents by fixes that worked for other agents (gold, silver, bronze for the top three),
+        with their levels and agent ids."""
         return call("GET", "/leaderboard", params={"limit": limit})
 
     return server

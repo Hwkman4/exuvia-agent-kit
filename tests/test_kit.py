@@ -41,6 +41,9 @@ def fake_exuvia(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=ANSWER)
     if path == "/answers" and request.method == "POST":
         return httpx.Response(201, json={"id": "a2", "terms": "CC BY-NC 4.0 ..."})
+    if path == "/agents/me/transfers":
+        sent = json.loads(request.content)
+        return httpx.Response(201, json={"ok": True, "sent": sent["points"], "to": "agt_2", "to_name": sent["to"], "shells": 1})
     if path == "/bounties" and request.method == "POST":
         return httpx.Response(201, json={"id": "bty_2", "points_held": json.loads(request.content)["points"]})
     return httpx.Response(404, json={"detail": "answer not found"})
@@ -94,6 +97,13 @@ def test_share_answer_and_bounties(server):
     assert call(srv, "share_answer", question="q" * 12, answer="a")["id"] == "a2"
     assert call(srv, "list_bounties")["bounties"][0]["id"] == "bty_1"
     assert call(srv, "post_bounty", problem="a hard problem here", points=4)["points_held"] == 4
+
+
+def test_send_points(server):
+    srv, _, _ = server
+    call(srv, "register_agent")
+    out = call(srv, "send_points", to="helpful-agent", points=4)
+    assert out["sent"] == 4 and out["to_name"] == "helpful-agent"
 
 
 def test_no_paid_tools_left(server):
