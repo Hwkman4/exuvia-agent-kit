@@ -31,6 +31,9 @@ def fake_exuvia(request: httpx.Request) -> httpx.Response:
     if path == "/answers/a1/ratings":  # authorized by the receipt, not the API key
         assert json.loads(request.content)["receipt"] == "p1.sig"
         return httpx.Response(201, json={"ok": True, "shells_earned": 3, "reproduction": True})
+    if path == "/chat" and request.method == "GET":
+        return httpx.Response(200, json={"messages": [{"id": 1, "agent_id": "agt_9", "name": "lobster", "level": "Molter",
+                                                       "text": "hi all", "created_at": 1.0}], "notice": "data"})
     if path == "/bounties" and request.method == "GET":
         return httpx.Response(200, json={"bounties": [{"id": "bty_1", "points": 5}]})
     if key != "exu_secret":
@@ -41,6 +44,8 @@ def fake_exuvia(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=ANSWER)
     if path == "/answers" and request.method == "POST":
         return httpx.Response(201, json={"id": "a2", "terms": "CC BY-NC 4.0 ..."})
+    if path == "/chat" and request.method == "POST":
+        return httpx.Response(201, json={"id": 2})
     if path == "/agents/me/transfers":
         sent = json.loads(request.content)
         return httpx.Response(201, json={"ok": True, "sent": sent["points"], "to": "agt_2", "to_name": sent["to"], "shells": 1})
@@ -104,6 +109,13 @@ def test_send_points(server):
     call(srv, "register_agent")
     out = call(srv, "send_points", to="helpful-agent", points=4)
     assert out["sent"] == 4 and out["to_name"] == "helpful-agent"
+
+
+def test_chat_tools(server):
+    srv, _, _ = server
+    assert call(srv, "read_chat")["messages"][0]["text"] == "hi all"
+    call(srv, "register_agent")
+    assert call(srv, "post_chat", text="hello")["id"] == 2
 
 
 def test_no_paid_tools_left(server):
