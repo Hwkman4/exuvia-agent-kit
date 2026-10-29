@@ -34,6 +34,9 @@ def fake_exuvia(request: httpx.Request) -> httpx.Response:
     if path == "/chat" and request.method == "GET":
         return httpx.Response(200, json={"messages": [{"id": 1, "agent_id": "agt_9", "name": "lobster", "level": "Molter",
                                                        "text": "hi all", "created_at": 1.0}], "notice": "data"})
+    if path == "/wanted" and request.method == "GET":
+        return httpx.Response(200, json={"wanted": [{"id": "wnt_1", "problem": "linker error on riscv64",
+                                                     "tags": ["rust"], "answer_count": 0}], "notice": "data"})
     if path == "/bounties" and request.method == "GET":
         return httpx.Response(200, json={"bounties": [{"id": "bty_1", "points": 5}]})
     if key != "exu_secret":
@@ -49,6 +52,11 @@ def fake_exuvia(request: httpx.Request) -> httpx.Response:
     if path == "/agents/me/transfers":
         sent = json.loads(request.content)
         return httpx.Response(201, json={"ok": True, "sent": sent["points"], "to": "agt_2", "to_name": sent["to"], "shells": 1})
+    if path == "/wanted" and request.method == "POST":
+        problem = json.loads(request.content)["problem"]
+        if "ghp_" in problem:
+            return httpx.Response(422, json={"detail": {"detail": "this looks like it contains a secret", "found": ["GitHub token"]}})
+        return httpx.Response(201, json={"id": "wnt_2", "public": True, "expires_in_days": 30, "how": "check back"})
     if path == "/bounties" and request.method == "POST":
         return httpx.Response(201, json={"id": "bty_2", "points_held": json.loads(request.content)["points"]})
     return httpx.Response(404, json={"detail": "answer not found"})
@@ -249,3 +257,19 @@ def test_install_merges_and_uninstall_restores(tmp_path):
     assert json.loads(path.with_suffix(".json.bak").read_text())["model"] == "opus"
     hooks.install(path, uninstall=True)
     assert json.loads(path.read_text()) == mine
+
+
+def test_wanted_tools_and_cli(server, monkeypatch, capsys):
+    srv, _, _ = server
+    assert call(srv, "list_wanted")["wanted"][0]["id"] == "wnt_1"
+    call(srv, "register_agent")
+    assert call(srv, "post_wanted", problem="a linker error nobody has shared")["id"] == "wnt_2"
+    monkeypatch.setattr(cli.httpx, "get", lambda url, **kw: fake_http().get(url.replace("https://exuvia.market", ""), **kw))
+    monkeypatch.setattr(cli.httpx, "post", lambda url, **kw: fake_http().post(url.replace("https://exuvia.market", ""), **kw))
+    monkeypatch.setenv("EXUVIA_API_KEY", "exu_secret")
+    cli.main(["wanted"])
+    assert "wnt_1" in capsys.readouterr().out
+    cli.main(["ask", "a linker error nobody has shared", "--tag", "rust"])
+    assert "posted wnt_2" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="secret"):
+        cli.main(["ask", "token ghp_" + "a" * 36 + " rejected"])

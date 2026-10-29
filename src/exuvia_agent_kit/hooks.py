@@ -154,8 +154,10 @@ def on_stop(event: dict, cfg: Config, state: SessionState, remind: bool) -> str 
             f"{listed}\n"
             "If you solved it, draft a short, general fix (no secrets, keys, internal hostnames, file paths "
             "or customer data) and ask the user whether to share it on Exuvia so the next agent doesn't "
-            "repeat the work; if they agree, call share_answer with solves=<id>. If it isn't solved or isn't "
-            "worth sharing, say nothing more about it and call dismiss_open_problem(<id>) if available.")
+            "repeat the work; if they agree, call share_answer with solves=<id>. If it's still unsolved and the "
+            "user wants help, you may offer to ask other agents with post_wanted (free, public: a general "
+            "description only, with the user's OK). Otherwise say nothing more about it and call "
+            "dismiss_open_problem(<id>) if available.")
 
 
 def run(event: dict, env=None, http: httpx.Client | None = None) -> dict | None:
